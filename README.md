@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>敦克爾克大行動：抉擇時刻 - 互動學習</title>
+    <title>敦克爾克：抉擇時刻 - 互動學習</title>
     <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -76,9 +76,12 @@
 
     <!-- Firebase SDKs & 主程式 -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 官方 CDN，12.3.0是最新版也OK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
+        // 如果你還有 Firestore 或 Auth，可一起 import，例如：
+        // import { getAuth, signInAnonymously, ... } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+        // import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAk787OaW5KBN0jWbyRMhJxwlYWqMLUx5k",
@@ -89,11 +92,16 @@
             appId: "1:744196429035:web:c262533b33e8d390359aae",
             measurementId: "G-32FRBE0RL4"
         };
-        const app = initializeApp(firebaseConfig);
 
-        // 這裡繼續放你的互動遊戲主JS
-        // 例如 const db = getFirestore(app);
-        // ... 其他互動邏輯
+        // 初始化 Firebase 與 Analytics
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        // 這裡以下是你互動主程式，可直接接著貼其他 Firestore/Auth/Canvas JS
+        // 例如：
+        // const db = getFirestore(app);
+        // const auth = getAuth(app);
+        // ...原本遊戲互動JS照常貼就好...
 
     </script>
 </body>
