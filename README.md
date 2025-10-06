@@ -1,10 +1,9 @@
-<script type="module">
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>敦克爾克：抉擇時刻 - 互動學習</title>
+    <title>敦克爾克大行動：抉擇時刻 - 互動學習</title>
     <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -73,17 +72,14 @@
                 </svg>
             </div>
         </div>
-
     </div>
 
     <!-- Firebase SDKs & 主程式 -->
     <script type="module">
-        // Firebase 官方 CDN (支援 GitHub Pages)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 這裡貼你的 config 設定（已幫你整合）
         const firebaseConfig = {
             apiKey: "AIzaSyAk787OaW5KBN0jWbyRMhJxwlYWqMLUx5k",
             authDomain: "test-dd39e.firebaseapp.com",
@@ -95,20 +91,10 @@
         };
         const app = initializeApp(firebaseConfig);
 
-        // 原本互動 & Firestore/auth 主程式照常寫，以下保留你原本的 Canvas 遊戲 JS...
-        // （全部代碼、Canvas互動、個人資料填寫、進度儲存、選擇邏輯都可以直接照原本用法）
+        // 這裡繼續放你的互動遊戲主JS
+        // 例如 const db = getFirestore(app);
+        // ... 其他互動邏輯
 
-        // 你可以直接複製你的遊戲主程式（包含 UI、拖曳互動、存取 Firestore、驗證邏輯等）在這段 script 裡執行
-
-        // ＊如果不確定如何複製進來，請用你之前 paste 的主程式，將:
-        // const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        // 改成上述的 config＋初始化即可
-
-        // EX: const db = getFirestore(app); const auth = getAuth(app); 以下全部互動照舊
-
-        // ========== 這裡以下留給你的主要遊戲 JS 內容 ==========
-
-        // ...（保留你的全部原遊戲邏輯。每次用 app, db, auth 這些物件即可）
     </script>
 </body>
 </html>
