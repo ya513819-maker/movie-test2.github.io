@@ -30,26 +30,11 @@
         .card-shadow {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
         }
-        .person-card {
-            cursor: grab;
-            transition: transform 0.2s;
-        }
-        .person-card:active {
-            cursor: grabbing;
-        }
-        .dragging {
-            opacity: 0.7;
-            transform: scale(1.05);
-            z-index: 50;
-        }
-        .drop-zone {
-            min-height: 12rem;
-            border: 3px dashed #9ca3af;
-        }
-        .drop-zone.drag-over {
-            border-color: #f97316;
-            background-color: #fef3c7;
-        }
+        .person-card {cursor: grab;transition: transform 0.2s;}
+        .person-card:active {cursor: grabbing;}
+        .dragging {opacity: 0.7;transform: scale(1.05);z-index: 50;}
+        .drop-zone {min-height: 12rem;border: 3px dashed #9ca3af;}
+        .drop-zone.drag-over {border-color: #f97316;background-color: #fef3c7;}
     </style>
 </head>
 <body class="font-sans text-dunkirk-blue">
@@ -62,6 +47,7 @@
             <p id="user-info" class="text-sm mt-2 text-gray-500">連線中...</p>
         </header>
 
+        <!-- Dynamic Content Area -->
         <div id="content">
             <div class="text-center p-8">
                 <h2 class="text-2xl font-bold mb-4 text-dunkirk-blue">正在準備個人模擬...</h2>
@@ -76,13 +62,11 @@
 
     <!-- Firebase SDKs & 主程式 -->
     <script type="module">
-        // 官方 CDN，12.3.0是最新版也OK
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-        // 如果你還有 Firestore 或 Auth，可一起 import，例如：
-        // import { getAuth, signInAnonymously, ... } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-        // import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Firebase設定直接用明文，勿用typeof，Pages才會生效！
         const firebaseConfig = {
             apiKey: "AIzaSyAk787OaW5KBN0jWbyRMhJxwlYWqMLUx5k",
             authDomain: "test-dd39e.firebaseapp.com",
@@ -93,15 +77,32 @@
             measurementId: "G-32FRBE0RL4"
         };
 
-        // 初始化 Firebase 與 Analytics
+        // 初始化Firebase
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // 這裡以下是你互動主程式，可直接接著貼其他 Firestore/Auth/Canvas JS
-        // 例如：
-        // const db = getFirestore(app);
-        // const auth = getAuth(app);
-        // ...原本遊戲互動JS照常貼就好...
+        // 自動匿名登入並初始化
+        let userId = null;
+        let userChoicesRef = null;
+        let userName = null;
+        let userClass = null;
+        let currentPhase = 'loading';
+        let socraticCritique = null;
+        let currentUserId = 'unknown';
+
+        // 匿名登入後帶入資料流程
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) await signInAnonymously(auth); //匿名登入
+            userId = auth.currentUser.uid;
+            userChoicesRef = doc(db, `artifacts/default-dunkirk-app/users/${userId}/dunkirk_data/choices`);
+            //可繼續執行init & 畫面流程
+            document.getElementById('user-info').textContent = "個人身份驗證成功";
+            // ... 你原來initFirebase、startApp等資料流程可直接跟著觸發
+        });
+
+        // 以下直接接你的canvas互動/遊戲記錄/UI流程原始碼，JS功能與原本完全一致
+        // 例如你所有 phase1、phase2、registration 畫面切換、資料存/讀邏輯直接貼在這個script內
 
     </script>
 </body>
