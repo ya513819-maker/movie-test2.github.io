@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>敦克爾克：抉擇時刻 - 互動學習</title>
+  <title>敦克爾克大行動：抉擇時刻 - 互動學習</title>
 
   <!-- Tailwind（CDN 用於教學/DEMO，可忽略警告） -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -64,7 +64,7 @@
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // 1) 你的 Firebase 設定（請確認與專案一致）
+    // 你的 Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyAk787OaW5KBN0jWbyRMhJxwlYWqMLUx5k",
       authDomain: "test-dd39e.firebaseapp.com",
@@ -75,13 +75,18 @@
       measurementId: "G-32FRBE0RL4"
     };
 
-    // 2) 初始化
+    // 初始化
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // 3) 全域狀態
-    const APP_ID = 'default-dunkirk-app'; // 路徑用固定值，方便測試與管理
+    // LLM（Gemini）設定：使用你提供的 API Key
+    const API_KEY = "AIzaSyDtH5v550LZk_mbTQGCwc8po3y70_HCL3Q";
+    const GEMINI_API_MODEL = "gemini-2.5-flash-preview-05-20";
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_API_MODEL}:generateContent?key=${API_KEY}`;
+
+    // 全域狀態
+    const APP_ID = 'default-dunkirk-app';
     let userId = null;
     let userChoicesRef = null;
     let userName = null;
@@ -89,7 +94,7 @@
     let currentPhase = 'loading';
     let socraticCritique = null;
 
-    // 4) 資料（保留你的設定）
+    // 資料設定
     const PEOPLE_DATA = [
       { id: 'W01', type: 'WoundedSoldier', label: '重傷士兵', count: 5, status: '無法戰鬥', priority: 1, color: 'bg-red-200' },
       { id: 'Y01', type: 'YoungSoldier', label: '年輕士兵', count: 10, status: '可戰鬥', priority: 2, color: 'bg-green-200' },
@@ -116,21 +121,12 @@
       ]
     };
 
-    // ===== 核心初始化流程（精簡且不阻塞） =====
+    // 匿名登入與啟動流程
     onAuthStateChanged(auth, async (user) => {
-      console.log('[auth] onAuthStateChanged reached');
       try {
-        if (!user) {
-          console.log('[auth] No user, signInAnonymously...');
-          await signInAnonymously(auth);
-        }
+        if (!user) await signInAnonymously(auth);
         userId = auth.currentUser.uid;
-        console.log('[auth] uid =', userId);
-
-        // 建立使用者文件參照
         userChoicesRef = doc(db, `artifacts/${APP_ID}/users/${userId}/dunkirk_data/choices`);
-
-        // 嘗試讀取既有資料（即便失敗也不要阻塞）
         try {
           const snap = await getDoc(userChoicesRef);
           const data = snap.data() || {};
@@ -139,9 +135,8 @@
         } catch (err) {
           console.warn('[init] 初次 getDoc 失敗（可忽略，文件待建立）：', err);
         }
-
         document.getElementById('user-info').textContent = '個人身份驗證成功';
-        startApp(); // 直接進入主流程
+        startApp();
       } catch (e) {
         console.error('[auth] 身分流程失敗：', e);
         document.getElementById('content').innerHTML =
@@ -150,7 +145,6 @@
     });
 
     async function checkUserProgress() {
-      console.log('[flow] checkUserProgress');
       try {
         if (!userChoicesRef) return { isRegistered: false, phase1: false, phase2: false };
         const docSnap = await getDoc(userChoicesRef);
@@ -167,7 +161,6 @@
     }
 
     function startApp() {
-      console.log('[flow] startApp');
       checkUserProgress().then(progress => {
         if (!progress.isRegistered) {
           currentPhase = 'registration';
@@ -189,9 +182,8 @@
       });
     }
 
-    // ===== UI 畫面（保留你原先結構；僅做必要精簡） =====
+    // UI 畫面
     function renderRegistrationScreen() {
-      console.log('[ui] renderRegistrationScreen');
       document.getElementById('content').innerHTML = `
         <div class="text-center p-8 bg-white rounded-xl card-shadow">
           <h2 class="text-3xl font-extrabold text-dunkirk-blue mb-4">開始個人模擬：請填寫基本資訊</h2>
@@ -235,7 +227,6 @@
     }
 
     function renderStartScreen() {
-      console.log('[ui] renderStartScreen');
       document.getElementById('content').innerHTML = `
         <div class="text-center p-8 bg-white rounded-xl card-shadow">
           <h2 class="text-3xl font-extrabold text-dunkirk-blue mb-4">歡迎來到敦克爾克沙灘</h2>
@@ -251,13 +242,12 @@
       document.getElementById('start-dilemma-btn').addEventListener('click', renderPhase1Dilemma);
     }
 
-    // ====== Phase 1（保留你的核心互動，略作縮短） ======
+    // Phase 1
     let savedCount = 0;
     let selectedPeople = {};
     let timerInterval;
 
     function renderPhase1Dilemma() {
-      console.log('[ui] renderPhase1Dilemma');
       savedCount = 0;
       selectedPeople = {};
 
@@ -435,7 +425,6 @@
     }
 
     function renderPhase2() {
-      console.log('[ui] renderPhase2');
       const hopeSceneHTML = SCENES.hope.map(s => `
         <label class="flex items-center p-3 bg-white rounded-lg card-shadow hover:bg-gray-50 transition-colors cursor-pointer">
           <input type="radio" name="hope_vote" value="${s.id}" data-desc="${s.description}" class="mr-3 accent-dunkirk-blue" required>
@@ -485,6 +474,58 @@
       document.getElementById('phase2-form').addEventListener('submit', savePhase2Data);
     }
 
+    // Gemini 呼叫：指數退避 + 容錯
+    async function fetchWithExponentialBackoff(url, options, maxRetries = 5) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) return response;
+          if (response.status !== 429 && response.status < 500) {
+            throw new Error(`API status ${response.status}: ${await response.text()}`);
+          }
+        } catch (error) {
+          if (i === maxRetries - 1) throw error;
+        }
+        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      throw new Error("Max retries exceeded.");
+    }
+
+    async function generateSocraticCritique(data) {
+      const systemPrompt =
+        "你就是蘇格拉底的靈魂。你的目標不是給予答案，而是根據學生提供的倫理和道德數據，提出一個深入、挑戰他們核心假設、偏見或矛盾的批判或反問。你的回應必須以繁體中文呈現，以一個有力的詰問開頭，並力求簡潔（不超過 150 字）。";
+
+      const userQuery = `請針對以下學生的「敦克爾克：抉擇時刻」第二階段提交數據，給出一個蘇格拉底式的質疑：
+
+1. 現代無名英雄身份/標籤: ${data.heroIdentity} / ${data.heroTag}
+2. 最能代表「希望」的場景: ${data.hopeSceneDescription}
+3. 選擇希望的理由: ${data.hopeReason}
+4. 最能代表「絕望」的場景: ${data.despairSceneDescription}
+5. 選擇絕望的理由: ${data.despairReason}
+6. 道德反思與矛盾: ${data.ethicalReflection}
+
+質疑目標：挑戰他們的英雄定義或道德反思的深度。`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+
+      try {
+        const response = await fetchWithExponentialBackoff(
+          GEMINI_API_URL,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+        );
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        return text || "蘇格拉底的靈魂正在沉思中，沒有給出明確的答案。";
+      } catch (error) {
+        console.error("Gemini API call failed:", error);
+        return "（由於技術限制，蘇格拉底今日無法發言。請自行思考你提交的反思！）";
+      }
+    }
+
     async function savePhase2Data(e) {
       e.preventDefault();
       try {
@@ -509,21 +550,37 @@
           ethicalReflection: document.getElementById('ethical-reflection').value.trim(),
         };
 
+        // 先顯示等待
+        document.getElementById('content').innerHTML = `
+          <div class="text-center p-8 bg-white rounded-xl card-shadow">
+            <h2 class="text-2xl font-bold mb-4 text-accent-orange">正在等待蘇格拉底的回覆...</h2>
+            <p class="text-lg text-gray-600">這可能需要幾秒鐘，請不要關閉頁面。</p>
+            <svg class="animate-spin h-8 w-8 text-dunkirk-blue mx-auto mt-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        `;
+
+        // 產生 AI 詰問
+        socraticCritique = await generateSocraticCritique(phase2Data);
+
+        // 儲存
         await setDoc(userChoicesRef, {
           ...phase2Data,
+          socraticCritique,
           timestampP2: new Date().toISOString(),
         }, { merge: true });
 
         renderResults();
       } catch (e2) {
-        console.error('[p2] 提交失敗：', e2);
+        console.error('[p2] 提交或生成失敗：', e2);
         document.getElementById('error-message-p2').textContent = '提交失敗，請檢查網路連線或重試。';
         renderResults();
       }
     }
 
     function renderResults() {
-      console.log('[ui] renderResults');
       document.getElementById('content').innerHTML = `
         <div class="text-center p-8">
           <h2 class="text-2xl font-bold mb-4 text-dunkirk-blue">正在分析你的抉擇...</h2>
@@ -534,7 +591,6 @@
         </div>
       `;
 
-      // 重新讀取（若失敗也顯示容錯內容）
       getDoc(userChoicesRef).then(docSnap => {
         const userData = docSnap.data() || {};
         const p1Summary = Object.entries(userData.savedPeople || {}).map(([type, count]) => {
@@ -546,6 +602,7 @@
         const heroSummary = `${userData.heroIdentity || '無'} (${userData.heroTag || '無'})`;
         const hopeDesc = userData.hopeSceneDescription || '無';
         const despairDesc = userData.despairSceneDescription || '無';
+        const critique = userData.socraticCritique || socraticCritique || 'AI 蘇格拉底的詰問未被載入。';
 
         document.getElementById('content').innerHTML = `
           <h2 class="text-2xl font-bold mb-6 text-dunkirk-blue border-b-2 border-accent-orange pb-2">個人分析：你的抉擇總結</h2>
@@ -571,7 +628,7 @@
             <div class="lg:col-span-1 p-6 bg-yellow-100 rounded-xl card-shadow border-t-8 border-yellow-500">
               <h3 class="text-xl font-bold mb-3 text-yellow-800">蘇格拉底的詰問</h3>
               <div class="text-base text-yellow-900 italic font-serif">
-                <p>（本版本未連接 LLM，若需AI詰問可再開啟 Gemini API）</p>
+                <p>${critique}</p>
               </div>
             </div>
           </div>
