@@ -83,8 +83,8 @@ try
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-dunkirk-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
@@ -157,40 +157,42 @@ try
 
                 document.getElementById('user-info').textContent = '正在驗證身分...';
 
-                await new Promise((resolve) => {
-                    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                        unsubscribe();
+                // --- FIX: Direct sign-in attempt to avoid 'auth/configuration-not-found' ---
+                let user = auth.currentUser;
+                if (!user) {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        // Fallback to anonymous sign-in if no custom token is available
+                        await signInAnonymously(auth);
+                    }
+                }
+                
+                // Ensure we have a user now
+                user = auth.currentUser;
+                if (user) {
+                    currentUserId = user.uid;
+                    userId = currentUserId;
+                    // Use the private path for data persistence
+                    userChoicesRef = doc(db, `artifacts/${appId}/users/${userId}/dunkirk_data/choices`);
 
-                        if (user) {
-                            currentUserId = user.uid;
-                        } else if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                            currentUserId = auth.currentUser.uid;
-                        } else {
-                            await signInAnonymously(auth);
-                            currentUserId = auth.currentUser.uid;
-                        }
+                    // Fetch initial user data to check for name/class
+                    const docSnap = await getDoc(userChoicesRef);
+                    const userData = docSnap.data() || {};
+                    userName = userData.userName || null;
+                    userClass = userData.userClass || null;
 
-                        userId = currentUserId;
-                        // Use the private path for data persistence
-                        userChoicesRef = doc(db, `artifacts/${appId}/users/${userId}/dunkirk_data/choices`);
-
-                        // Fetch initial user data to check for name/class
-                        const docSnap = await getDoc(userChoicesRef);
-                        const userData = docSnap.data() || {};
-                        userName = userData.userName || null;
-                        userClass = userData.userClass || null;
-
-                        updateUserInfoDisplay();
-                        resolve();
-                    });
-                });
-
-                startApp();
+                    updateUserInfoDisplay();
+                    startApp();
+                } else {
+                    console.error("Authentication failed: No user available after sign-in attempts.");
+                    document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">致命錯誤：身分驗證失敗，請重試。</p>`;
+                }
+                // --------------------------------------------------------------------------
 
             } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">錯誤：Firebase 連線失敗。詳情請看控制台。</p>`;
+                console.error("Firebase initialization or sign-in failed:", error);
+                document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">錯誤：Firebase 連線或身分驗證失敗。詳情請看控制台。</p>`;
             }
         }
 
@@ -462,7 +464,8 @@ try
             
             if (!isForced && savedCount === 0) {
                  // Use custom modal instead of window.confirm
-                 if (!confirm("您還沒有拯救任何人。確定要以空船提交嗎？")) {
+                 // Simple custom confirm simulation for Canvas
+                 if (!window.confirm("您還沒有拯救任何人。確定要以空船提交嗎？")) {
                      startTimer(1); // Restart timer for 1 sec to trigger submission
                      return;
                  }
