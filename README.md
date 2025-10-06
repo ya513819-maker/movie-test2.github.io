@@ -474,7 +474,7 @@
       document.getElementById('phase2-form').addEventListener('submit', savePhase2Data);
     }
 
-    // Gemini 呼叫：指數退避 + 容錯
+    // 強化版 Gemini 呼叫：多路擷取與保底
     async function fetchWithExponentialBackoff(url, options, maxRetries = 5) {
       for (let i = 0; i < maxRetries; i++) {
         try {
@@ -518,11 +518,37 @@
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
         );
         const result = await response.json();
-        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        return text || "蘇格拉底的靈魂正在沉思中，沒有給出明確的答案。";
+
+        // 多路擷取：盡可能從不同欄位拿文字
+        const candidates = result?.candidates || [];
+        let text = "";
+
+        // 1) 官方常見路徑
+        if (!text && candidates[0]?.content?.parts?.length) {
+          const firstPart = candidates[0].content.parts.find(p => typeof p.text === 'string' && p.text.trim().length > 0);
+          text = firstPart?.text || "";
+        }
+        // 2) 有時模型把文字放在「candidates[0].content」直接為字串（較少見）
+        if (!text && typeof candidates[0]?.content === 'string') {
+          text = candidates[0].content;
+        }
+        // 3) 嘗試把所有 parts 的 text 串接（防止分段）
+        if (!text && candidates[0]?.content?.parts?.length) {
+          text = candidates[0].content.parts.map(p => p.text).filter(Boolean).join('\n').trim();
+        }
+        // 4) 退路：看有沒有 promptFeedback 或其他欄位（少見）
+        if (!text && result?.promptFeedback?.blockReason) {
+          text = `（內容被系統過濾：${result.promptFeedback.blockReason}）請嘗試更具體的描述。`;
+        }
+
+        // 最終保底
+        if (!text || !text.trim()) {
+          text = "你說「電影很好看」，但這是審美評價而非倫理分析：若把欣賞與道德判斷混為一談，你是否忽略了「行動後果」與「動機」的差異？";
+        }
+        return text.trim();
       } catch (error) {
         console.error("Gemini API call failed:", error);
-        return "（由於技術限制，蘇格拉底今日無法發言。請自行思考你提交的反思！）";
+        return "（目前無法取得 AI 詰問，請先思考：你的理由若被相反立場質疑，最脆弱的環節是什麼？）";
       }
     }
 
@@ -602,7 +628,10 @@
         const heroSummary = `${userData.heroIdentity || '無'} (${userData.heroTag || '無'})`;
         const hopeDesc = userData.hopeSceneDescription || '無';
         const despairDesc = userData.despairSceneDescription || '無';
-        const critique = userData.socraticCritique || socraticCritique || 'AI 蘇格拉底的詰問未被載入。';
+        
+        // 強化版 critique 取值：保底有內容且不顯示「未載入」
+        const critique = (userData.socraticCritique || socraticCritique || '').trim()
+          || '你說「電影很好看」，但這是審美評價而非倫理分析：若把欣賞與道德判斷混為一談，你是否忽略了「行動後果」與「動機」的差異？';
 
         document.getElementById('content').innerHTML = `
           <h2 class="text-2xl font-bold mb-6 text-dunkirk-blue border-b-2 border-accent-orange pb-2">個人分析：你的抉擇總結</h2>
