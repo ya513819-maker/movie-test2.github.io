@@ -1,100 +1,27 @@
-# movie-test2.github.io
-try 
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>敦克爾克大行動：抉擇時刻 - 互動學習</title>
-    <!-- 載入 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'dunkirk-blue': '#1a202c',
-                        'sand-color': '#e5e5e0',
-                        'accent-orange': '#f97316',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            background-color: #f7f7f5;
-            min-height: 100vh;
-        }
-        .card-shadow {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-        }
-        .person-card {
-            cursor: grab;
-            transition: transform 0.2s;
-        }
-        .person-card:active {
-            cursor: grabbing;
-        }
-        .dragging {
-            opacity: 0.7;
-            transform: scale(1.05);
-            z-index: 50;
-        }
-        .drop-zone {
-            min-height: 12rem;
-            border: 3px dashed #9ca3af;
-        }
-        .drop-zone.drag-over {
-            border-color: #f97316;
-            background-color: #fef3c7;
-        }
-    </style>
-</head>
-<body class="font-sans text-dunkirk-blue">
-
-    <div id="app" class="max-w-4xl mx-auto p-4 md:p-8">
-        <!-- Header -->
-        <header class="text-center mb-8 border-b-2 border-accent-orange pb-4">
-            <h1 class="text-3xl md:text-4xl font-extrabold text-dunkirk-blue">《敦克爾克：抉擇時刻》</h1>
-            <p class="text-lg text-gray-600 mt-2">從絕望沙灘到人性光輝</p>
-            <p id="user-info" class="text-sm mt-2 text-gray-500">
-                連線中...
-            </p>
-        </header>
-
-        <!-- Dynamic Content Area -->
-        <div id="content">
-            <div class="text-center p-8">
-                <h2 class="text-2xl font-bold mb-4 text-dunkirk-blue">正在準備個人模擬...</h2>
-                <p class="text-lg text-gray-600">連線至資料庫中，請稍候。</p>
-                <svg class="animate-spin h-8 w-8 text-dunkirk-blue mx-auto mt-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Firebase SDKs -->
     <script type="module">
+        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Added Analytics import
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-dunkirk-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // Your web app's Firebase configuration - NOW USING YOUR PROVIDED CONFIG!
+        const firebaseConfig = {
+          apiKey: "AIzaSyAk787OaW5KBN0jWbyRMhJxwlYWqMLUx5k",
+          authDomain: "test-dd39e.firebaseapp.com",
+          projectId: "test-dd39e",
+          storageBucket: "test-dd39e.firebasestorage.app",
+          messagingSenderId: "744196429035",
+          appId: "1:744196429035:web:c262533b33e8d390359aae",
+          measurementId: "G-32FRBE0RL4"
+        };
 
         let app;
         let db;
         let auth;
         let userId = null;
         let userChoicesRef = null;
+        let analytics; // Declare analytics variable
 
         let userName = null;
         let userClass = null;
@@ -102,7 +29,7 @@ try
         let currentUserId = 'unknown';
         let socraticCritique = null;
 
-        const API_KEY = "";
+        const API_KEY = ""; // 請填寫你的 Gemini API Key
         const GEMINI_API_MODEL = "gemini-2.5-flash-preview-05-20";
         const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_API_MODEL}:generateContent?key=${API_KEY}`;
 
@@ -144,55 +71,40 @@ try
         }
 
         async function initFirebase() {
-            if (!firebaseConfig) {
-                console.error("Firebase config is missing.");
-                document.getElementById('content').innerHTML = '<p class="text-red-600 text-center">錯誤：Firebase 設定檔遺失，無法運行個人進度儲存模式。</p>';
-                return;
-            }
-
             try {
                 app = initializeApp(firebaseConfig);
+                analytics = getAnalytics(app); // Initialize Google Analytics here
                 db = getFirestore(app);
                 auth = getAuth(app);
 
                 document.getElementById('user-info').textContent = '正在驗證身分...';
 
-                // --- FIX: Direct sign-in attempt to avoid 'auth/configuration-not-found' ---
-                let user = auth.currentUser;
-                if (!user) {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userId = currentUserId;
+                        userChoicesRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${userId}/dunkirk_data/choices`);
+
+                        const docSnap = await getDoc(userChoicesRef);
+                        const userData = docSnap.data() || {};
+                        userName = userData.userName || null;
+                        userClass = userData.userClass || null;
+
+                        updateUserInfoDisplay();
+                        startApp();
                     } else {
-                        // Fallback to anonymous sign-in if no custom token is available
-                        await signInAnonymously(auth);
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (anonError) {
+                            console.error("Anonymous sign-in failed:", anonError);
+                            document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">致命錯誤：匿名登入失敗，請重試。</p>`;
+                        }
                     }
-                }
-                
-                // Ensure we have a user now
-                user = auth.currentUser;
-                if (user) {
-                    currentUserId = user.uid;
-                    userId = currentUserId;
-                    // Use the private path for data persistence
-                    userChoicesRef = doc(db, `artifacts/${appId}/users/${userId}/dunkirk_data/choices`);
-
-                    // Fetch initial user data to check for name/class
-                    const docSnap = await getDoc(userChoicesRef);
-                    const userData = docSnap.data() || {};
-                    userName = userData.userName || null;
-                    userClass = userData.userClass || null;
-
-                    updateUserInfoDisplay();
-                    startApp();
-                } else {
-                    console.error("Authentication failed: No user available after sign-in attempts.");
-                    document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">致命錯誤：身分驗證失敗，請重試。</p>`;
-                }
-                // --------------------------------------------------------------------------
+                });
 
             } catch (error) {
-                console.error("Firebase initialization or sign-in failed:", error);
-                document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">錯誤：Firebase 連線或身分驗證失敗。詳情請看控制台。</p>`;
+                console.error("Firebase initialization failed:", error);
+                document.getElementById('content').innerHTML = `<p class="text-red-600 text-center">錯誤：Firebase 連線或初始化失敗。詳情請看控制台。</p>`;
             }
         }
 
@@ -291,7 +203,6 @@ try
                 isRegistered: true
             };
             
-            // Only saving to the private user choices reference
             await setDoc(userChoicesRef, data, { merge: true });
         }
 
@@ -418,10 +329,13 @@ try
             function updateCapacityDisplay() {
                 document.getElementById('capacity-display').textContent = 10 - savedCount;
                 if (savedCount === 10) {
-                    dropZone.innerHTML = '';
+                    const placeholder = dropZone.querySelector('p');
+                    if (placeholder) {
+                        dropZone.removeChild(placeholder);
+                    }
                     submitButton.classList.remove('hidden');
                 } else {
-                    if (dropZone.children.length === 0 || dropZone.children[0].tagName !== 'DIV') {
+                    if (!dropZone.querySelector('p') && dropZone.children.length === 0) {
                        dropZone.innerHTML = '<p class="text-gray-500 text-lg">拖曳 10 位待救者到此區域 (船艙)</p>';
                     }
                     submitButton.classList.add('hidden');
@@ -430,6 +344,7 @@ try
 
             function moveCard(card, destination, source) {
                 if (destination.id === 'drop-zone') {
+                    if (savedCount >= 10) return;
                     savedCount++;
                     selectedPeople[card.id] = { type: card.dataset.type, label: card.dataset.label };
                 } else if (destination.id === 'people-container') {
@@ -463,10 +378,8 @@ try
             clearInterval(timerInterval);
             
             if (!isForced && savedCount === 0) {
-                 // Use custom modal instead of window.confirm
-                 // Simple custom confirm simulation for Canvas
                  if (!window.confirm("您還沒有拯救任何人。確定要以空船提交嗎？")) {
-                     startTimer(1); // Restart timer for 1 sec to trigger submission
+                     startTimer(1);
                      return;
                  }
             }
@@ -723,7 +636,6 @@ try
                 
                 socraticCritique = await generateSocraticCritique(phase2Data);
 
-                // Only save to the private user choices reference
                 await setDoc(userChoicesRef, {
                     ...phase2Data,
                     socraticCritique: socraticCritique,
@@ -815,5 +727,3 @@ try
 
         window.onload = initFirebase;
     </script>
-</body>
-</html>
